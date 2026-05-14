@@ -1,0 +1,53 @@
+{
+  "name": "quickcalc",
+  "version": "1.0.0",
+  "description": "QuickCalc — MagicPill Labs",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:portable": "electron-builder --win portable",
+    "build:installer": "electron-builder --win nsis",
+    "build:editor": "esbuild src/vendor/codemirror-entry.js --bundle --format=iife --target=es2020 --outfile=src/vendor/codemirror.bundle.js --minify"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.0.0",
+    "esbuild": "^0.28.0"
+  },
+  "dependencies": {
+    "@codemirror/lang-markdown": "^6.5.0",
+    "codemirror": "^6.0.2",
+    "mathjs": "^14.8.1"
+  },
+  "build": {
+    "appId": "com.magicpilllabs.quickcalc",
+    "productName": "QuickCalc",
+    "files": [
+      "main.js",
+      "quickcalc.html",
+      "quickcalc-logo.png",
+      "quickcalc-logo-icon.png",
+      "src/**",
+      "icons/**",
+      "changelog/**"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "icons/icon.ico",
+      "artifactName": "QuickCalc-${version}-portable.${ext}"
+    },
+    "portable": {
+      "artifactName": "QuickCalc-${version}-portable.${ext}",
+      "unpackDirName": "QuickCalc"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "icons/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "icons/icon.png"
+    }
+  }
+}

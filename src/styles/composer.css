@@ -1,0 +1,162 @@
+/* ============================================================
+   Composer — input, mode switch, prompt picker, autocomplete,
+   tag popover, toast
+   ============================================================ */
+.composer-wrap {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to top, var(--bg-elev) 70%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 16px 28px 18px; border-top: 1px solid var(--rule-soft);
+}
+.composer-wrap.hidden { display: none; }
+.composer-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--ink-mute); text-transform: uppercase; letter-spacing: .1em;
+}
+.composer-meta-left { display: flex; align-items: center; gap: 8px; }
+.mode-switch { display: inline-flex; border: 1px solid var(--rule); }
+.mode-switch button {
+  padding: 4px 12px; font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase;
+}
+.mode-switch button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+.mode-switch button[data-mode="ai"][aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+#prompt-picker-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border: 1px solid var(--rule);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase;
+  transition: background .15s, color .15s;
+}
+#prompt-picker-btn:hover { background: var(--bg-sunk); }
+#prompt-picker-btn svg { flex-shrink: 0; }
+.prompt-picker.open #prompt-picker-btn {
+  background: var(--ink); color: var(--bg); border-color: var(--ink);
+}
+.composer {
+  display: grid; grid-template-columns: 40px 1fr auto;
+  align-items: stretch; border: 2px solid var(--ink);
+  background: var(--bg-elev); transition: border-color .2s;
+}
+.composer.ai-mode { border-color: var(--accent); }
+.composer-prefix {
+  display: grid; place-items: center;
+  font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700;
+  color: var(--ink); border-right: 1px solid var(--rule-soft);
+}
+.composer.ai-mode .composer-prefix { color: var(--accent); }
+.composer textarea {
+  background: transparent; border: 0; padding: 12px 14px;
+  resize: none; font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; line-height: 1.5; outline: none;
+  min-height: 48px; max-height: 200px;
+}
+.composer-right { display: flex; border-left: 1px solid var(--rule-soft); }
+.composer-right button {
+  padding: 0 14px; font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; font-weight: 500;
+  display: flex; align-items: center; gap: 6px;
+  transition: background .15s;
+}
+.composer-right .send { background: var(--ink); color: var(--bg); padding: 0 20px; }
+.composer-right .send:hover { background: var(--accent); color: var(--accent-ink); }
+.composer.ai-mode .composer-right .send { background: var(--accent); color: var(--accent-ink); }
+.composer-right .send.streaming { background: var(--err); color: #fff; }
+
+.calc-autocomplete {
+  position: fixed;
+  transform: translateY(-100%);
+  background: var(--bg-elev);
+  border: 1px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  z-index: 60;
+  display: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.calc-autocomplete.open { display: block; }
+.calc-autocomplete-item {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--rule-soft);
+  background: transparent;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.calc-autocomplete-item:last-child { border-bottom: 0; }
+.calc-autocomplete-item:hover,
+.calc-autocomplete-item[aria-selected="true"] {
+  background: var(--bg-sunk);
+}
+.calc-autocomplete-item .hint {
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+.prompt-picker { position: relative; }
+.prompt-picker-panel {
+  position: absolute; bottom: calc(100% + 6px); left: 0;
+  width: 320px; background: var(--bg-elev);
+  border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--ink);
+  display: none; z-index: 20;
+}
+.prompt-picker.open .prompt-picker-panel { display: block; }
+.prompt-picker-search { padding: 10px 12px; border-bottom: 1px solid var(--rule-soft); }
+.prompt-picker-search input {
+  width: 100%; background: transparent; border: 0; outline: none;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+}
+.prompt-picker-list { max-height: 260px; overflow-y: auto; }
+.prompt-picker-item {
+  display: block; width: 100%; text-align: left;
+  padding: 10px 12px; border-bottom: 1px solid var(--rule-soft);
+  transition: background .1s; border: 0; background: transparent;
+}
+.prompt-picker-item:hover { background: var(--bg-sunk); }
+.prompt-picker-item .pp-title { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+.prompt-picker-item .pp-snippet {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.prompt-picker-empty { padding: 20px 12px; text-align: center; font-size: 11px; color: var(--ink-mute); }
+
+/* Tag popover */
+.tag-popover {
+  position: fixed; background: var(--bg-elev); border: 1px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink); padding: 8px;
+  display: none; z-index: 30; width: 240px;
+}
+.tag-popover.open { display: block; }
+.tag-popover input {
+  width: 100%; border: 1px solid var(--rule-soft);
+  padding: 6px 8px; font-size: 12px; outline: none; background: transparent;
+}
+.tag-popover input:focus { border-color: var(--accent); }
+.tag-popover-hint {
+  margin-top: 6px; font-size: 10px; color: var(--ink-mute);
+  letter-spacing: .08em; text-transform: uppercase;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 54px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: var(--bg);
+  padding: 8px 16px; font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  z-index: 200; opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.err { background: var(--err); }

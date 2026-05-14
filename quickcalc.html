@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QuickCalc — MagicPill Labs</title>
+<meta name="theme-color" content="#f4f2ed" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="QuickCalc" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icons/icon-192.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./icons/icon-192.svg" />
+<script>
+  // Prefer the bundled math.js copy so the desktop app never blocks on network.
+  (function loadMathJs() {
+    const localScript = document.createElement('script');
+    localScript.src = './node_modules/mathjs/lib/browser/math.js';
+    localScript.async = true;
+    localScript.onerror = () => {
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.js';
+      fallbackScript.async = true;
+      document.head.appendChild(fallbackScript);
+    };
+    document.head.appendChild(localScript);
+  })();
+</script>
+
+<!-- Stylesheets (split for navigability) -->
+<link rel="stylesheet" href="./src/styles/base.css" />
+<link rel="stylesheet" href="./src/styles/layout.css" />
+<link rel="stylesheet" href="./src/styles/panel.css" />
+<link rel="stylesheet" href="./src/styles/stream.css" />
+<link rel="stylesheet" href="./src/styles/notes.css" />
+<link rel="stylesheet" href="./src/styles/composer.css" />
+<link rel="stylesheet" href="./src/styles/combobox.css" />
+<link rel="stylesheet" href="./src/styles/modals.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <header class="masthead">
+    <div class="brand">
+      <img class="brand-logo brand-logo-full" src="./quickcalc-logo.png" alt="QuickCalc" />
+      <img class="brand-logo brand-logo-icon" src="./quickcalc-logo-icon.png" alt="QuickCalc" />
+    </div>
+    <div class="masthead-spacer"></div>
+    <div class="masthead-actions">
+      <button class="mact" id="logs-btn" title="Activity log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h12"/></svg>
+        Logs
+      </button>
+      <button class="mact" id="settings-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </button>
+    </div>
+  </header>
+
+  <div class="workspace" id="workspace">
+    <aside class="sidebar">
+      <div class="side-head">
+        <span class="title">Entries</span>
+        <span class="count mono" id="side-count">00</span>
+      </div>
+      <div class="side-search">
+        <input type="text" id="side-search-input" placeholder="Search entries…" />
+      </div>
+      <div class="side-actions">
+        <div class="new-dropdown" id="new-dropdown">
+          <button class="new-btn" id="new-btn"><span aria-hidden="true">＋</span> <span class="newlabel">New</span></button>
+          <div class="new-dropdown-panel">
+            <button data-new="calc">
+              New Calc
+              <span class="hint">Terminal-style math &amp; AI</span>
+            </button>
+            <button data-new="note">
+              New Note
+              <span class="hint">Markdown-ready scratch pad</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="side-list" id="side-list"></div>
+      <button class="side-collapse-btn" id="collapse-sidebar-btn" title="Collapse sidebar" aria-label="Toggle sidebar">
+        <svg class="icon-expanded" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        <svg class="icon-collapsed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        <span class="side-collapse-label">Collapse</span>
+      </button>
+    </aside>
+
+    <section class="main" id="main-panel">
+      <div class="main-head" id="main-head">
+        <div class="main-crumb">
+          <span class="crumb-num mono" id="crumb-num">№ 00</span>
+          <input class="crumb-title" id="active-title" value="" placeholder="Untitled" />
+          <div class="crumb-tags" id="active-tags"></div>
+        </div>
+        <div class="main-head-meta" id="main-head-meta">
+          <span>Items <strong id="entry-count">0</strong></span>
+          <span>Updated <strong id="updated-at">—</strong></span>
+        </div>
+        <div class="head-actions">
+          <button class="icon-btn" title="Add tag" id="head-tag-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          </button>
+          <button class="icon-btn" title="Duplicate" id="head-dup-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          </button>
+          <button class="icon-btn" title="Delete" id="head-del-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="note-subbar" id="note-subbar">
+        <div class="note-subbar-left">
+          <div class="note-toggle" id="note-toggle">
+            <button class="active" data-mode="edit">Edit</button>
+            <button data-mode="preview">Preview</button>
+          </div>
+        </div>
+        <div class="note-subbar-right">
+          <button class="note-prompt-toggle" id="note-prompt-toggle" title="Mark as a reusable prompt">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/></svg>
+            Mark as prompt
+          </button>
+          <button class="note-ai-toggle" id="note-ai-toggle" title="Toggle AI assistant pane">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.6 4.6L18 9l-4.4 1.4L12 15l-1.6-4.6L6 9l4.4-1.4z"/><path d="M19 15l.7 2L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-1z"/></svg>
+            Assistant
+          </button>
+        </div>
+      </div>
+
+      <div class="stream" id="stream"></div>
+
+      <div class="notes-view" id="notes-view">
+        <div class="note-editor">
+          <div class="note-cm" id="note-cm" data-placeholder="Start writing. Markdown supported."></div>
+          <div class="note-preview" id="note-preview"></div>
+        </div>
+        <aside class="note-ai-pane" id="note-ai-pane" aria-hidden="true">
+          <div class="note-ai-head">
+            <div class="note-ai-title">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.6 4.6L18 9l-4.4 1.4L12 15l-1.6-4.6L6 9l4.4-1.4z"/></svg>
+              Assistant
+            </div>
+            <button class="note-ai-clear" id="note-ai-clear" title="Clear chat">Clear</button>
+            <button class="note-ai-close" id="note-ai-close" title="Close pane" aria-label="Close">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="note-ai-context" id="note-ai-context">
+            <button class="note-ai-context-head" id="note-ai-context-head" aria-expanded="false">
+              <span class="caret">▸</span>
+              <span class="lbl">Context</span>
+              <span class="meta" id="note-ai-context-meta">whole note</span>
+            </button>
+            <div class="note-ai-context-body" id="note-ai-context-body">
+              <label class="note-ai-context-row">
+                <input type="checkbox" id="note-ai-use-all" checked />
+                <span>Use entire note</span>
+              </label>
+              <div class="note-ai-context-list" id="note-ai-context-list"></div>
+              <div class="note-ai-context-empty" id="note-ai-context-empty" hidden>
+                Add markdown headings (<code class="mono">##</code>) to pick specific sections.
+              </div>
+            </div>
+          </div>
+          <div class="note-ai-thread" id="note-ai-thread"></div>
+          <div class="note-ai-composer">
+            <div class="note-ai-meta">
+              <div class="combobox up" id="cb-note-ai">
+                <button class="combobox-trigger small" data-cb="trigger" title="Model for this chat">
+                  <span class="cb-label">Model</span>
+                  <span class="cb-caret">▾</span>
+                </button>
+                <div class="combobox-panel">
+                  <div class="combobox-search">
+                    <input type="text" placeholder="Search models…" data-cb="search" />
+                  </div>
+                  <div class="combobox-status">
+                    <span data-cb="status">—</span>
+                    <span class="cb-refresh" data-cb="refresh">Refresh</span>
+                  </div>
+                  <div class="combobox-list" data-cb="list"></div>
+                </div>
+              </div>
+              <div class="note-ai-tools" id="note-ai-tools">
+                <button class="note-ai-tools-btn" id="note-ai-tools-btn" title="Toggle tools">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 005.4-5.4l-2.4 2.4-2.6-.7-.7-2.6z"/></svg>
+                  <span class="lbl">Tools</span>
+                  <span class="badge" id="note-ai-tools-badge" hidden>0</span>
+                </button>
+                <div class="note-ai-tools-panel" id="note-ai-tools-panel">
+                  <label class="note-ai-tool-row">
+                    <input type="checkbox" id="note-ai-tool-web" />
+                    <div>
+                      <div class="ttitle">Web search</div>
+                      <div class="tdesc">Let the model query the web for fresh facts (uses OpenRouter's web plugin).</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="note-ai-row">
+              <textarea id="note-ai-input" rows="1" placeholder="Ask, draft, or describe an edit…"></textarea>
+              <button class="send" id="note-ai-send">Run ↵</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="calc-autocomplete" id="calc-autocomplete" role="listbox" aria-label="Calc variables"></div>
+
+      <div class="composer-wrap" id="composer-wrap">
+        <div class="composer-meta">
+          <div class="composer-meta-left">
+            <div class="mode-switch" role="tablist">
+              <button data-mode="calc" aria-selected="true">▸ CALC</button>
+              <button data-mode="ai" aria-selected="false">◎ AI</button>
+            </div>
+            <div class="prompt-picker" id="prompt-picker">
+              <button id="prompt-picker-btn" title="Insert from prompts library">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Prompts
+              </button>
+              <div class="prompt-picker-panel" id="prompt-picker-panel">
+                <div class="prompt-picker-search">
+                  <input type="text" id="prompt-search" placeholder="Search prompts…" />
+                </div>
+                <div class="prompt-picker-list" id="prompt-list"></div>
+              </div>
+            </div>
+            <div class="combobox up" id="cb-composer">
+              <button class="combobox-trigger small" data-cb="trigger" title="Model for next AI message">
+                <span class="cb-label">Model</span>
+                <span class="cb-caret">▾</span>
+              </button>
+              <div class="combobox-panel">
+                <div class="combobox-search">
+                  <input type="text" placeholder="Search models…" data-cb="search" />
+                </div>
+                <div class="combobox-status">
+                  <span data-cb="status">—</span>
+                  <span class="cb-refresh" data-cb="refresh">Refresh</span>
+                </div>
+                <div class="combobox-list" data-cb="list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="composer" id="composer">
+          <div class="composer-prefix" id="composer-prefix">&gt;</div>
+          <textarea id="input" rows="1" placeholder="e.g. 4500 * 12   or   500 USD / month * 12 months"></textarea>
+          <div class="composer-right">
+            <button class="send" id="send-btn">Run ↵</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tag-popover" id="tag-popover">
+        <input type="text" id="tag-input" placeholder="Enter tag name…" />
+        <div class="tag-popover-hint">↵ to add · Esc to close</div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="statusbar">
+    <div class="status-group">
+      <span class="status-pill"><span class="status-dot" id="storage-dot"></span> <span id="storage-size">—</span></span>
+      <span class="status-pill"><span class="status-dot mute" id="ai-dot"></span> AI · <span id="ai-status">No key set</span></span>
+    </div>
+    <div style="text-align:center;">MODE: <span id="mode-status">CALC</span> · VIEW: <span id="view-status">—</span></div>
+    <div></div>
+  </footer>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-head">
+      <span class="mh-index">§ 00</span>
+      <h2 class="mh-title" id="settings-title">Settings</h2>
+      <button class="modal-close" id="close-settings" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <nav class="settings-nav" id="settings-nav">
+        <button class="settings-nav-item" aria-selected="true" data-panel="appearance"><span class="nav-num">01</span><span>Appearance</span></button>
+        <button class="settings-nav-item" data-panel="ai"><span class="nav-num">02</span><span>AI &amp; OpenRouter</span></button>
+        <button class="settings-nav-item" data-panel="features"><span class="nav-num">03</span><span>Features</span></button>
+        <button class="settings-nav-item" data-panel="data"><span class="nav-num">04</span><span>Data</span></button>
+        <button class="settings-nav-item" data-panel="about"><span class="nav-num">05</span><span>About</span></button>
+        <button class="settings-nav-item" data-panel="help"><span class="nav-num">06</span><span>Help</span></button>
+      </nav>
+      <div class="settings-content" id="settings-content">
+
+        <div class="settings-panel active" data-panel="appearance">
+          <div class="panel-title">Appearance</div>
+          <div class="panel-desc">Tune the interface to match your environment.</div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Color theme</div>
+              <div class="sr-desc">Light or dark interface.</div>
+            </div>
+            <div class="theme-picker" id="theme-picker">
+              <button data-theme="light" aria-selected="true">Light</button>
+              <button data-theme="dark" aria-selected="false">Dark</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Show line numbers in notes</div>
+              <div class="sr-desc">Adds a monospace line-number gutter to the note editor.</div>
+            </div>
+            <button class="toggle" aria-checked="false" data-toggle="showLineNumbers"></button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Tab width</div>
+              <div class="sr-desc">Spaces inserted when pressing Tab in the note editor. Shift+Tab outdents by the same amount.</div>
+            </div>
+            <div class="seg-picker" id="tab-width-picker">
+              <button data-tab-width="2" aria-selected="false">2</button>
+              <button data-tab-width="4" aria-selected="true">4</button>
+              <button data-tab-width="8" aria-selected="false">8</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Number format</div>
+              <div class="sr-desc">How calc results display. Changing this re-formats existing results.</div>
+            </div>
+            <div class="seg-picker" id="number-format-picker">
+              <button data-format="fixed" aria-selected="true">1,234</button>
+              <button data-format="auto" aria-selected="false">Auto</button>
+              <button data-format="scientific" aria-selected="false">1.2e3</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="ai">
+          <div class="panel-title">AI &amp; OpenRouter</div>
+          <div class="panel-desc">Configure your OpenRouter credentials and model defaults. Keys stay in your browser.</div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">OpenRouter API key</div>
+              <div class="sr-desc">Stored in localStorage. Never leaves this device.</div>
+            </div>
+            <div class="text-input-wrap">
+              <input class="text-input mono" type="password" placeholder="sk-or-v1-…" id="api-key-input" />
+              <button type="button" class="text-input-toggle" id="api-key-toggle" aria-pressed="false">Show</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Default model</div>
+              <div class="sr-desc">Used for new AI messages. Live list from OpenRouter.</div>
+            </div>
+            <div class="combobox right-align" id="cb-settings">
+              <button class="combobox-trigger" data-cb="trigger">
+                <span class="cb-label">—</span>
+                <span class="cb-caret">▾</span>
+              </button>
+              <div class="combobox-panel">
+                <div class="combobox-search">
+                  <input type="text" placeholder="Search models…" data-cb="search" />
+                </div>
+                <div class="combobox-status">
+                  <span data-cb="status">—</span>
+                  <span class="cb-refresh" data-cb="refresh">Refresh</span>
+                </div>
+                <div class="combobox-list" data-cb="list"></div>
+              </div>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">System prompt</div>
+              <div class="sr-desc">Prepended to every Calc AI conversation. Leave blank for none.</div>
+            </div>
+            <input class="text-input mono" type="text" id="system-prompt-input" placeholder="You are a helpful assistant…" />
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Note editor system prompt</div>
+              <div class="sr-desc">Sent to the assistant pane next to a note. Leave blank to use the default writing-assistant prompt.</div>
+            </div>
+            <input class="text-input mono" type="text" id="note-system-prompt-input" placeholder="You are a writing assistant…" />
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Stream responses</div>
+              <div class="sr-desc">Stream tokens as they arrive.</div>
+            </div>
+            <button class="toggle" aria-checked="true" data-toggle="stream"></button>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="features">
+          <div class="panel-title">Features</div>
+          <div class="panel-desc">Toggle optional features.</div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Markdown preview</div>
+              <div class="sr-desc">Show the Edit / Markdown toggle on notes.</div>
+            </div>
+            <button class="toggle" aria-checked="true" data-toggle="markdown"></button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Prompt library picker</div>
+              <div class="sr-desc">Show the prompts dropdown in the composer.</div>
+            </div>
+            <button class="toggle" aria-checked="true" data-toggle="promptPicker"></button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Keyboard shortcuts</div>
+              <div class="sr-desc">Enable ⌘/Ctrl+K new calc, ⌘/Ctrl+, settings, ⌘/Ctrl+/ prompts.</div>
+            </div>
+            <button class="toggle" aria-checked="true" data-toggle="shortcuts"></button>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="data">
+          <div class="panel-title">Data</div>
+          <div class="panel-desc">Import, export, and destroy local data. Everything lives in your browser.</div>
+
+          <div class="stats-grid" id="stats-grid">
+            <div class="stat-tile">
+              <div class="stat-label">Storage</div>
+              <div class="stat-value" id="stat-storage">—</div>
+              <div class="stat-sub" id="stat-storage-sub">localStorage</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-label">Entries</div>
+              <div class="stat-value" id="stat-entries">—</div>
+              <div class="stat-sub" id="stat-entries-sub">total</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-label">Calcs</div>
+              <div class="stat-value" id="stat-calcs">—</div>
+              <div class="stat-sub" id="stat-calcs-sub">calc entries</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-label">Notes</div>
+              <div class="stat-value" id="stat-notes">—</div>
+              <div class="stat-sub" id="stat-notes-sub">of which prompts</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-label">Messages</div>
+              <div class="stat-value" id="stat-messages">—</div>
+              <div class="stat-sub" id="stat-messages-sub">calc vs AI</div>
+              <div class="stats-bar" id="stat-messages-bar" style="display:none">
+                <div class="fill ink" style="width:0"></div>
+                <div class="fill" style="width:0"></div>
+              </div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-label">Tags</div>
+              <div class="stat-value" id="stat-tags">—</div>
+              <div class="stat-sub" id="stat-tags-sub">unique</div>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Export all data</div>
+              <div class="sr-desc">Download entries, logs, and settings as a single JSON file.</div>
+            </div>
+            <button class="danger-btn neutral" id="export-btn">Export JSON</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Download logs</div>
+              <div class="sr-desc">Save the activity log as a separate JSON file.</div>
+            </div>
+            <button class="danger-btn neutral" id="export-logs-btn">Export Logs</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Import from JSON</div>
+              <div class="sr-desc">Replace current data with a previous export.</div>
+            </div>
+            <button class="danger-btn neutral" id="import-btn">Import…</button>
+            <input type="file" id="import-file" accept="application/json,.json" hidden />
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Delete all data</div>
+              <div class="sr-desc">Remove all entries and settings from this browser. Cannot be undone.</div>
+            </div>
+            <button class="danger-btn" id="delete-all-btn">Delete Everything</button>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="help">
+          <div class="panel-title">Help — Calc Syntax</div>
+          <div class="panel-desc">The calc input uses <strong>math.js</strong> expression syntax — not JavaScript. Think of it as a smart calculator with variables, units, and functions.</div>
+
+          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <div class="sr-title">Variables</div>
+            <div class="sr-desc">Assign with <code>=</code>. Variables persist across all lines in the same entry and can be used in later expressions.</div>
+            <pre class="help-pre">v = 5
+rate = 0.08
+total = v * (1 + rate)</pre>
+          </div>
+
+          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <div class="sr-title">Basic arithmetic</div>
+            <div class="sr-desc">Standard operators: <code>+</code> <code>-</code> <code>*</code> <code>/</code>. Use parentheses to group.</div>
+            <pre class="help-pre">4500 * 12
+(100 + 50) / 3
+15 % 4   // remainder</pre>
+          </div>
+
+          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <div class="sr-title">Powers &amp; roots</div>
+            <div class="sr-desc">Use <code>^</code> for exponentiation (not <code>**</code>). Use <code>sqrt()</code> for square root.</div>
+            <pre class="help-pre">5^2        // 25
+2^10       // 1024
+sqrt(144)  // 12
+cbrt(27)   // 3</pre>
+          </div>
+
+          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <div class="sr-title">Math functions</div>
+            <div class="sr-desc">Full math.js function library is available.</div>
+            <pre class="help-pre">abs(-5)         // 5
+round(3.7)      // 4
+floor(3.9)      // 3
+ceil(3.1)       // 4
+log(100, 10)    // 2  (log base 10)
+log(e)          // 1
+sin(pi / 2)     // 1
+max(3, 7, 2)    // 7
+min(3, 7, 2)    // 2</pre>
+          </div>
+
+          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <div class="sr-title">Constants</div>
+            <pre class="help-pre">pi   // 3.14159…
+e    // 2.71828…
+phi  // 1.61803… (golden ratio)
+tau  // 2*pi
+Infinity</pre>
+          </div>
+
+          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <div class="sr-title">Units</div>
+            <div class="sr-desc">math.js supports physical units. Convert with <code>in</code>. Currency units (USD, EUR, etc.) are also available.</div>
+            <pre class="help-pre">5 kg in lbs
+100 km/h in mph
+1 inch in cm
+500 USD / 12 months
+100 EUR * 1.08</pre>
+          </div>
+
+          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <div class="sr-title">What does NOT work</div>
+            <div class="sr-desc">This is not JavaScript. The following are invalid:</div>
+            <pre class="help-pre">var x = 6    // ✗ no JS keywords
+let y = 2    // ✗
+x ** 2       // ✗ use x^2 instead
+console.log  // ✗ no JS APIs
+if / for     // ✗ no control flow</pre>
+          </div>
+
+          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+            <div class="sr-title">Multiline</div>
+            <div class="sr-desc">Press <strong>Shift+Enter</strong> for a new line in one submission. Each line is evaluated in sequence within the same scope.</div>
+          </div>
+        </div>
+
+        <div class="settings-panel" data-panel="about">
+          <div class="panel-title">About</div>
+          <div class="panel-desc">QuickCalc — a local-first terminal for quick math, quick thinking, and quick notes.</div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Version</div>
+              <div class="sr-desc">Build 0.1 — MagicPill Labs, 2026</div>
+            </div>
+            <div class="version-actions">
+              <button class="changelog-btn" id="open-changelog-btn" type="button">View changelog</button>
+              <span class="mono version-pill" id="about-version-pill">v0.1.0</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Tech</div>
+              <div class="sr-desc">math.js for evaluation, OpenRouter for AI, localStorage for persistence.</div>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="sr-title">Keyboard shortcuts</div>
+              <div class="sr-desc">⌘/Ctrl+K — new calc · ⌘/Ctrl+, — settings · ⌘/Ctrl+/ — prompts · Esc — close panels</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="version">QuickCalc v0.1</span>
+      <span>Local-first · No account · No telemetry</span>
+    </div>
+  </div>
+</div>
+
+<!-- Changelog modal -->
+<div class="modal-overlay" id="changelog-modal">
+  <div class="modal changelog-modal-inner" role="dialog" aria-modal="true" aria-labelledby="changelog-title">
+    <div class="modal-head">
+      <span class="mh-index">§ REL</span>
+      <h2 class="mh-title" id="changelog-title">Changelog</h2>
+      <button class="modal-close" id="close-changelog" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body changelog-body">
+      <nav class="changelog-nav" id="changelog-nav" aria-label="Versions"></nav>
+      <div class="changelog-content" id="changelog-content"></div>
+    </div>
+    <div class="modal-foot">
+      <span class="version" id="changelog-foot-version">—</span>
+      <span>Release notes · bundled with app</span>
+    </div>
+  </div>
+</div>
+
+<!-- Logs modal -->
+<div class="modal-overlay" id="logs-modal">
+  <div class="modal logs-modal-inner" role="dialog" aria-modal="true" aria-labelledby="logs-title">
+    <div class="modal-head">
+      <span class="mh-index">§ LOG</span>
+      <h2 class="mh-title" id="logs-title">Activity</h2>
+      <button class="modal-close" id="close-logs" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="logs-toolbar">
+      <div class="logs-filter" id="logs-filter">
+        <button class="logs-filter-btn" data-filter="all" aria-selected="true">All</button>
+        <button class="logs-filter-btn" data-filter="calc">Calc</button>
+        <button class="logs-filter-btn" data-filter="ai">AI</button>
+        <button class="logs-filter-btn" data-filter="entry">Entries</button>
+        <button class="logs-filter-btn" data-filter="note">Notes</button>
+        <button class="logs-filter-btn" data-filter="error">Errors</button>
+      </div>
+      <div class="logs-meta">
+        <span id="logs-count">0 events</span>
+        <button class="logs-clear-btn" id="logs-clear-btn">Clear log</button>
+      </div>
+    </div>
+    <div class="logs-body" id="logs-body"></div>
+    <div class="modal-foot">
+      <span class="version">Activity log · capped at 500 events</span>
+      <span>Stored locally · never sent anywhere</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- App scripts — plain scripts (not modules) share a single global
+     lexical scope, so cross-file references work like the original
+     single-script file. Order matters for top-level declarations. -->
+<script src="./src/js/storage.js"></script>
+<script src="./src/js/utils.js"></script>
+<script src="./src/js/state.js"></script>
+<script src="./src/js/logs.js"></script>
+<script src="./src/js/markdown.js"></script>
+<script src="./src/js/theme.js"></script>
+<script src="./src/js/sidebar.js"></script>
+<script src="./src/js/main-view.js"></script>
+<script src="./src/js/stream.js"></script>
+<script src="./src/js/calc.js"></script>
+<script src="./src/js/ai.js"></script>
+<script src="./src/vendor/codemirror.bundle.js"></script>
+<script src="./src/js/notes.js"></script>
+<script src="./src/js/notes-ai.js"></script>
+<script src="./src/js/composer.js"></script>
+<script src="./src/js/prompts.js"></script>
+<script src="./src/js/tags.js"></script>
+<script src="./src/js/models.js"></script>
+<script src="./src/js/settings.js"></script>
+<script src="./src/js/changelog.js"></script>
+<script src="./src/js/logs-modal.js"></script>
+<script src="./src/js/data.js"></script>
+<script src="./src/js/shortcuts.js"></script>
+<script src="./src/js/boot.js"></script>
+
+</body>
+</html>

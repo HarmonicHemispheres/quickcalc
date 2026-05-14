@@ -1,0 +1,60 @@
+/* ============================================================
+   QUICKCALC — Swiss Editorial
+   Design tokens, base resets, scrollbar, responsive
+   ============================================================ */
+:root[data-theme="light"] {
+  --bg: #f4f2ed; --bg-elev: #ffffff; --bg-sunk: #eceae4;
+  --ink: #111111; --ink-soft: #555555; --ink-mute: #8a8a85;
+  --rule: #111111; --rule-soft: #d5d2cb;
+  --accent: #ff3c00; --accent-ink: #ffffff;
+  --ok: #2a7a3f; --err: #c0392b; --mono-bg: #eceae4;
+  --md-h: #c0440a; --md-code: #1a7a4a; --md-link: #2562a8;
+  --md-em: #555555; --md-muted: #8a8a85; --md-marker: #c0440a;
+}
+:root[data-theme="dark"] {
+  --bg: #0e0e0c; --bg-elev: #161613; --bg-sunk: #080807;
+  --ink: #f2efe7; --ink-soft: #b2ae9f; --ink-mute: #706c60;
+  --rule: #f2efe7; --rule-soft: #2a2a26;
+  --accent: #ff4a15; --accent-ink: #0e0e0c;
+  --ok: #6ac37d; --err: #e06656; --mono-bg: #1a1a17;
+  --md-h: #e8a04a; --md-code: #6ac37d; --md-link: #61afef;
+  --md-em: #b2ae9f; --md-muted: #706c60; --md-marker: #e8a04a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Space Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--ink);
+  font-size: 14px; line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  transition: background-color .25s ease, color .25s ease;
+}
+.mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+.tnum { font-variant-numeric: tabular-nums; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input, textarea { font: inherit; color: inherit; }
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .workspace { grid-template-columns: 220px 1fr; }
+  .masthead { grid-template-columns: 220px 1fr auto; }
+}
+@media (max-width: 640px) {
+  .workspace { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .masthead { grid-template-columns: 1fr auto; }
+  .brand { border-right: 0; }
+  .modal-body { grid-template-columns: 1fr; }
+  .settings-nav { display: none; }
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-sunk); }
+::-webkit-scrollbar-thumb { background: var(--ink-mute); }
+::-webkit-scrollbar-thumb:hover { background: var(--ink); }

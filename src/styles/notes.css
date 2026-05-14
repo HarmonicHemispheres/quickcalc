@@ -1,0 +1,464 @@
+/* ============================================================
+   Notes view — CodeMirror 6 mount + markdown preview
+   ============================================================ */
+.notes-view {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  flex-direction: row;
+}
+.notes-view.active { display: flex; }
+.note-editor {
+  max-width: 760px; width: 100%;
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 32px 40px;
+}
+.notes-view.ai-open .note-editor {
+  max-width: none;
+  margin: 0;
+}
+
+/* CodeMirror mount — CM injects its own .cm-editor inside this node.
+   We size the container; CM handles layout, wrapping, gutters, and
+   syntax highlighting via its own theme (see src/js/notes.js). */
+.note-cm {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.note-cm .cm-editor {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Scrollbars — hidden by default, fade in when the user hovers near the
+   right edge or scrolls. The .show-scrollbar class is toggled by
+   _setupScrollbarReveal() in src/js/notes.js. Background-color is the
+   property Chromium reliably transitions on ::-webkit-scrollbar-thumb. */
+.note-cm .cm-scroller::-webkit-scrollbar,
+.note-preview::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.note-cm .cm-scroller::-webkit-scrollbar-track,
+.note-preview::-webkit-scrollbar-track {
+  background: transparent;
+}
+.note-cm .cm-scroller::-webkit-scrollbar-thumb,
+.note-preview::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 5px;
+  transition: background-color .25s ease;
+}
+.note-cm.show-scrollbar .cm-scroller::-webkit-scrollbar-thumb,
+.note-preview.show-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--ink-mute);
+}
+.note-cm.show-scrollbar .cm-scroller::-webkit-scrollbar-thumb:hover,
+.note-preview.show-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ink-soft);
+}
+
+/* Markdown preview pane */
+.note-preview {
+  font-size: 15px; line-height: 1.65;
+  display: none;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.note-preview.active { display: block; }
+.note-preview h1 { font-size: 28px; margin: 24px 0 12px; letter-spacing: -.02em; }
+.note-preview h2 { font-size: 22px; margin: 20px 0 10px; letter-spacing: -.01em; }
+.note-preview h3 { font-size: 17px; margin: 16px 0 8px; }
+.note-preview p { margin-bottom: 12px; }
+.note-preview code { font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 1px 5px; background: var(--mono-bg); }
+.note-preview pre { background: var(--mono-bg); padding: 12px; overflow-x: auto; margin: 12px 0; }
+.note-preview pre code { background: transparent; padding: 0; }
+.note-preview ul, .note-preview ol { margin: 10px 0 14px 24px; }
+.note-preview li { margin-bottom: 5px; }
+.note-preview strong { font-weight: 600; }
+.note-preview em { font-style: italic; }
+.note-preview a { color: var(--accent); text-decoration: underline; }
+.note-preview blockquote {
+  border-left: 3px solid var(--rule-soft); padding-left: 16px;
+  color: var(--ink-soft); margin: 12px 0;
+}
+.note-preview hr { border: 0; border-top: 1px solid var(--rule-soft); margin: 20px 0; }
+.note-preview table {
+  border-collapse: collapse; width: 100%;
+  margin: 14px 0; font-size: 13px;
+}
+.note-preview thead th {
+  background: var(--mono-bg); font-weight: 600;
+  border-bottom: 2px solid var(--ink);
+  padding: 8px 12px; text-align: left;
+}
+.note-preview tbody td {
+  border-bottom: 1px solid var(--rule-soft);
+  padding: 7px 12px; vertical-align: top;
+}
+.note-preview tbody tr:last-child td { border-bottom: 0; }
+
+/* ============================================================
+   AI assistant side pane
+   ============================================================ */
+.note-ai-pane {
+  display: none;
+  width: 380px; flex-shrink: 0;
+  border-left: 1px solid var(--rule-soft);
+  background: var(--bg);
+  flex-direction: column;
+  min-height: 0;
+}
+.notes-view.ai-open .note-ai-pane { display: flex; }
+
+.note-ai-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.note-ai-title {
+  display: flex; align-items: center; gap: 6px;
+  flex: 1;
+  font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  font-weight: 600; color: var(--ink);
+}
+.note-ai-clear {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 4px 8px; border: 1px solid var(--rule-soft); color: var(--ink-mute);
+  transition: all .15s;
+}
+.note-ai-clear:hover { border-color: var(--ink); color: var(--ink); }
+.note-ai-close {
+  width: 24px; height: 24px; display: grid; place-items: center;
+  border: 1px solid var(--rule-soft); color: var(--ink-mute);
+  transition: all .15s;
+}
+.note-ai-close:hover { border-color: var(--ink); color: var(--ink); }
+
+/* Context manager */
+.note-ai-context { border-bottom: 1px solid var(--rule-soft); }
+.note-ai-context-head {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-soft); background: transparent;
+  transition: background .12s;
+}
+.note-ai-context-head:hover { background: var(--bg-sunk); }
+.note-ai-context-head .caret {
+  display: inline-block; transition: transform .15s;
+  font-size: 9px; color: var(--ink-mute);
+}
+.note-ai-context.open .note-ai-context-head .caret { transform: rotate(90deg); }
+.note-ai-context-head .lbl { flex: 1; text-align: left; color: var(--ink); }
+.note-ai-context-head .meta {
+  font-size: 9px; color: var(--ink-mute); text-transform: none; letter-spacing: 0;
+}
+.note-ai-context-body {
+  display: none; padding: 8px 14px 12px; max-height: 200px; overflow-y: auto;
+}
+.note-ai-context.open .note-ai-context-body { display: block; }
+.note-ai-context-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 0; cursor: pointer;
+  font-size: 12px;
+}
+.note-ai-context-row input[type="checkbox"] {
+  width: 13px; height: 13px; cursor: pointer; accent-color: var(--ink);
+  flex-shrink: 0;
+}
+.note-ai-context-row span {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.note-ai-context-row.indent-1 { padding-left: 14px; }
+.note-ai-context-row.indent-2 { padding-left: 28px; }
+.note-ai-context-row.indent-3 { padding-left: 42px; }
+.note-ai-context-row.indent-4 { padding-left: 56px; }
+.note-ai-context-row.indent-5 { padding-left: 70px; }
+.note-ai-context-row.disabled { opacity: .4; pointer-events: none; }
+.note-ai-context-empty {
+  font-size: 11px; color: var(--ink-mute); padding: 6px 2px;
+  font-style: italic;
+}
+.note-ai-context-list { margin-top: 4px; border-top: 1px dashed var(--rule-soft); padding-top: 6px; }
+.note-ai-context.has-no-headings .note-ai-context-list { display: none; }
+
+/* Chat thread */
+.note-ai-thread {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.note-ai-msg {
+  display: flex; flex-direction: column; gap: 4px;
+  animation: fadein .25s ease both;
+}
+.note-ai-msg .who {
+  font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-mute); font-family: 'JetBrains Mono', monospace;
+}
+.note-ai-msg.user .who { color: var(--ink); }
+.note-ai-msg.ai .who { color: var(--accent); }
+.note-ai-msg.ai.err .who { color: var(--err); }
+.note-ai-msg .body {
+  font-size: 13px; line-height: 1.55;
+  padding: 8px 10px;
+  background: var(--mono-bg);
+}
+.note-ai-msg.user .body {
+  border-left: 2px solid var(--ink);
+  white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+}
+.note-ai-msg.ai .body { border-left: 2px solid var(--accent); }
+.note-ai-msg.ai.err .body { border-left-color: var(--err); color: var(--err); }
+.note-ai-msg .body p { margin-bottom: 6px; }
+.note-ai-msg .body p:last-child { margin-bottom: 0; }
+.note-ai-msg .body code {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  padding: 1px 4px; background: var(--bg);
+}
+.note-ai-msg .body pre {
+  background: var(--bg); padding: 8px 10px; margin: 6px 0;
+  overflow-x: auto;
+}
+.note-ai-msg .body pre code { background: transparent; padding: 0; }
+.note-ai-msg .body ul, .note-ai-msg .body ol { margin: 4px 0 6px 20px; }
+.note-ai-msg .body table {
+  border-collapse: collapse; width: 100%;
+  margin: 8px 0; font-size: 12px;
+}
+.note-ai-msg .body thead th {
+  background: var(--bg); font-weight: 600;
+  border-bottom: 2px solid var(--ink);
+  padding: 5px 8px; text-align: left;
+}
+.note-ai-msg .body tbody td {
+  border-bottom: 1px solid var(--rule-soft);
+  padding: 5px 8px; vertical-align: top;
+}
+.note-ai-msg .body tbody tr:last-child td { border-bottom: 0; }
+.note-ai-msg .body .cursor {
+  display: inline-block; width: 6px; height: 12px;
+  background: var(--ink); margin-left: 2px; vertical-align: text-bottom;
+  animation: blink 1s steps(2) infinite;
+}
+.note-ai-msg .actions {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin-top: 4px;
+}
+.note-ai-msg .actions button {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 3px 8px; border: 1px solid var(--rule-soft);
+  color: var(--ink-mute);
+  transition: all .12s;
+}
+.note-ai-msg .actions button:hover { border-color: var(--ink); color: var(--ink); }
+.note-ai-msg .actions button.applied { background: var(--ok); color: #fff; border-color: var(--ok); }
+.note-ai-empty {
+  text-align: center; color: var(--ink-mute); font-size: 11px;
+  padding: 24px 8px; line-height: 1.6;
+}
+.note-ai-empty strong { color: var(--ink); display: block; margin-bottom: 4px; font-weight: 600; }
+
+/* Composer */
+.note-ai-composer {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--rule-soft);
+  background: var(--bg);
+}
+.note-ai-meta {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.note-ai-meta .combobox-trigger.small {
+  max-width: 180px;
+}
+.note-ai-row {
+  display: flex; gap: 6px; align-items: flex-end;
+}
+.note-ai-row textarea {
+  flex: 1;
+  background: var(--mono-bg);
+  border: 1px solid var(--rule-soft);
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  padding: 8px 10px; resize: none; outline: none;
+  color: var(--ink); line-height: 1.5;
+  max-height: 160px;
+  transition: border-color .15s;
+}
+.note-ai-row textarea:focus { border-color: var(--ink); }
+.note-ai-row .send {
+  padding: 8px 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
+  background: var(--ink); color: var(--bg);
+  transition: opacity .15s;
+}
+.note-ai-row .send:hover { opacity: .85; }
+.note-ai-row .send.streaming { background: var(--err); }
+
+/* Tools button + popup */
+.note-ai-tools { position: relative; }
+.note-ai-tools-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid var(--rule);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.note-ai-tools-btn:hover { background: var(--bg-sunk); }
+.note-ai-tools-btn.has-active {
+  border-color: var(--accent); color: var(--accent);
+}
+.note-ai-tools.open .note-ai-tools-btn {
+  background: var(--ink); color: var(--bg); border-color: var(--ink);
+}
+.note-ai-tools-btn .badge {
+  display: inline-grid; place-items: center;
+  min-width: 14px; height: 14px; padding: 0 4px;
+  background: var(--accent); color: var(--accent-ink);
+  font-size: 9px; font-weight: 700; letter-spacing: 0;
+}
+.note-ai-tools.open .note-ai-tools-btn .badge {
+  background: var(--bg); color: var(--ink);
+}
+
+.note-ai-tools-panel {
+  position: absolute; bottom: calc(100% + 6px); right: 0;
+  width: 260px;
+  background: var(--bg-elev);
+  border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--ink);
+  display: none; z-index: 30;
+  padding: 6px;
+}
+.note-ai-tools.open .note-ai-tools-panel { display: block; }
+.note-ai-tool-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 8px 10px; cursor: pointer;
+  transition: background .12s;
+}
+.note-ai-tool-row:hover { background: var(--bg-sunk); }
+.note-ai-tool-row input[type="checkbox"] {
+  width: 13px; height: 13px; margin-top: 3px;
+  cursor: pointer; accent-color: var(--accent);
+  flex-shrink: 0;
+}
+.note-ai-tool-row .ttitle {
+  font-size: 12px; font-weight: 600; color: var(--ink);
+  margin-bottom: 2px;
+}
+.note-ai-tool-row .tdesc {
+  font-size: 11px; color: var(--ink-mute); line-height: 1.4;
+}
+
+/* Web indicator on assistant messages */
+.note-ai-msg .who-tool {
+  display: inline-block;
+  padding: 1px 5px; background: var(--accent); color: var(--accent-ink);
+  font-size: 8px; letter-spacing: .12em; text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* Tool-call status block (above response body) */
+.note-ai-msg .ai-tools { margin-bottom: 4px; }
+.note-ai-msg .ai-tools:empty { display: none; }
+.ai-tool-call {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--mono-bg);
+  border-left: 2px solid var(--accent);
+  margin-bottom: 2px;
+}
+.ai-tool-call.running,
+.ai-tool-call.done.none,
+.ai-tool-call.done > summary {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px;
+}
+.ai-tool-call.running .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.ai-tool-call.done.none { color: var(--ink-mute); }
+.ai-tool-call.done {
+  display: block;
+  border-left-color: var(--accent);
+}
+.ai-tool-call.done > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background .12s;
+}
+.ai-tool-call.done > summary:hover { background: var(--bg-sunk); }
+.ai-tool-call.done > summary::-webkit-details-marker { display: none; }
+.ai-tool-call.done > summary::after {
+  content: '▸'; margin-left: auto; font-size: 9px; color: var(--ink-mute);
+  transition: transform .15s;
+}
+.ai-tool-call.done[open] > summary::after { transform: rotate(90deg); }
+.ai-tool-call .icon { font-size: 10px; line-height: 1; }
+.ai-tool-call .lbl { font-weight: 500; color: var(--ink); }
+.ai-tool-call.running .lbl,
+.ai-tool-call.done.none .lbl { color: var(--ink-soft); }
+
+.ai-tool-call .src-list {
+  list-style: none; margin: 0; padding: 6px 8px 8px;
+  display: flex; flex-direction: column; gap: 4px;
+  text-transform: none; letter-spacing: 0;
+}
+.ai-tool-call .src-list li { font-size: 11px; line-height: 1.4; }
+.ai-tool-call .src-list a {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6px; align-items: baseline;
+  color: var(--ink); text-decoration: none;
+  padding: 3px 4px;
+  transition: background .1s;
+}
+.ai-tool-call .src-list a:hover { background: var(--bg-sunk); }
+.ai-tool-call .src-list .src-num {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--ink-mute); font-weight: 500;
+}
+.ai-tool-call .src-list .src-title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px;
+  color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ai-tool-call .src-list a:hover .src-title { color: var(--accent); }
+.ai-tool-call .src-list .src-host {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: var(--ink-mute);
+  letter-spacing: .04em;
+}
+.src-still {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 8px; font-size: 9px; color: var(--ink-mute);
+}
+.src-still .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); animation: pulse-dot 1s ease-in-out infinite;
+}
+
+/* Responsive — collapse pane on narrow viewports */
+@media (max-width: 920px) {
+  .note-ai-pane { width: 100%; border-left: 0; border-top: 1px solid var(--rule-soft); }
+  .notes-view.ai-open { flex-direction: column; }
+}
