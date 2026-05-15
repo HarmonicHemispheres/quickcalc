@@ -23,6 +23,9 @@
   "build": {
     "appId": "com.magicpilllabs.quickcalc",
     "productName": "QuickCalc",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "main.js",
       "quickcalc.html",
